@@ -58,6 +58,9 @@ public:
     // vehicle has to be closer than this many cm's to the target before descending towards target
     float get_max_xy_error_before_descending_cm() const { return _xy_max_dist_desc * 100.0f; }
 
+    // if vehicle gets this many meters from target, precland should be stopped
+    float get_max_xy_error_to_stop() const { return _dist_stop; }
+
     // returns orientation of sensor
     Rotation get_orient() const { return _orient; }
 
@@ -231,6 +234,8 @@ private:
     Vector3f                    _last_veh_velocity_NED_ms; // AHRS velocity at last estimate
 
     TargetState                 _current_target_state;  // Current status of the landing target
+
+    AP_Float                    _dist_stop; //Maximum xy dist to work with
 
     // structure and buffer to hold a history of vehicle velocity
     struct inertial_data_frame_s {

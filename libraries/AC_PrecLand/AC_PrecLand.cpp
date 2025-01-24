@@ -190,6 +190,13 @@ const AP_Param::GroupInfo AC_PrecLand::var_info[] = {
     // @RebootRequired: True
     AP_GROUPINFO_FRAME("ORIENT", 18, AC_PrecLand, _orient, AC_PRECLAND_ORIENT_DEFAULT, AP_PARAM_FRAME_ROVER),
 
+    // @Param: DIST_STOP
+    // @DisplayName: Maximum xy distance to stop landing
+    // @Description: Maximum xy distance to stop landing
+    // @Range: 0 50
+    // @Units: m
+    AP_GROUPINFO("DIST_STOP", 19, AC_PrecLand, _dist_stop, 0),
+
     AP_GROUPEND
 };
 
