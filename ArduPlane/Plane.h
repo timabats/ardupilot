@@ -265,6 +265,10 @@ private:
     void precland_update(void);
 #endif
 
+#if AC_PRECLAND_ENABLED && HAL_QUADPLANE_ENABLED
+    void quadplane_precland(void);
+#endif
+
     // returns a Location for a rally point or home; if
     // HAL_RALLY_ENABLED is false, just home.
     Location calc_best_rally_or_home_location(const Location &current_loc, float rtl_home_alt_amsl_cm) const;
@@ -1259,14 +1263,19 @@ public:
 #if AP_SCRIPTING_ENABLED || AP_EXTERNAL_CONTROL_ENABLED
     bool set_target_location(const Location& target_loc) override;
 #endif //AP_SCRIPTING_ENABLED || AP_EXTERNAL_CONTROL_ENABLED
-#if AP_SCRIPTING_ENABLED
+
     bool get_target_location(Location& target_loc) override;
     bool update_target_location(const Location &old_loc, const Location &new_loc) override;
-    bool set_velocity_match(const Vector2f &velocity) override;
 
     // allow for landing descent rate to be overridden by a script, may be -ve to climb
     bool set_land_descent_rate(float descent_rate) override;
-#endif // AP_SCRIPTING_ENABLED
+
+#if AP_SCRIPTING_ENABLED
+    // allow scripts to override mission/guided crosstrack behaviour
+    // It's up to the Lua script to ensure the provided location makes sense
+    bool set_crosstrack_start(const Location &new_start_location) override;
+    bool set_velocity_match(const Vector2f& velocity) override;
+#endif
 
 };
 

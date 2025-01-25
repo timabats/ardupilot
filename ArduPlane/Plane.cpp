@@ -135,6 +135,8 @@ const AP_Scheduler::Task Plane::scheduler_tasks[] = {
 #endif
 #if AC_PRECLAND_ENABLED
     SCHED_TASK(precland_update, 400, 50, 160),
+#endif
+#if HAL_QUADPLANE_ENABLED && AC_PRECLAND_ENABLED
     SCHED_TASK(quadplane_precland, 6, 200, 161),
 #endif
 #if AP_QUICKTUNE_ENABLED
@@ -874,7 +876,6 @@ bool Plane::set_target_location(const Location &target_loc)
 }
 #endif //AP_SCRIPTING_ENABLED || AP_EXTERNAL_CONTROL_ENABLED
 
-#if AP_SCRIPTING_ENABLED
 // get target location (for use by scripting)
 bool Plane::get_target_location(Location& target_loc)
 {
@@ -924,19 +925,6 @@ bool Plane::update_target_location(const Location &old_loc, const Location &new_
     return true;
 }
 
-// allow for velocity matching in VTOL
-bool Plane::set_velocity_match(const Vector2f &velocity)
-{
-#if HAL_QUADPLANE_ENABLED
-    if (quadplane.in_vtol_mode() || quadplane.in_vtol_land_sequence()) {
-        quadplane.poscontrol.velocity_match = velocity;
-        quadplane.poscontrol.last_velocity_match_ms = AP_HAL::millis();
-        return true;
-    }
-#endif
-    return false;
-}
-
 // allow for override of land descent rate
 bool Plane::set_land_descent_rate(float descent_rate)
 {
@@ -951,6 +939,20 @@ bool Plane::set_land_descent_rate(float descent_rate)
     return false;
 }
 
+#if AP_SCRIPTING_ENABLED
+// allow for velocity matching in VTOL
+bool Plane::set_velocity_match(const Vector2f &velocity)
+{
+#if HAL_QUADPLANE_ENABLED
+    if (quadplane.in_vtol_mode() || quadplane.in_vtol_land_sequence()) {
+        quadplane.poscontrol.velocity_match = velocity;
+        quadplane.poscontrol.last_velocity_match_ms = AP_HAL::millis();
+        return true;
+    }
+#endif
+    return false;
+}
+
 // Allow for scripting to have control over the crosstracking when exiting and resuming missions or guided flight
 // It's up to the Lua script to ensure the provided location makes sense
 bool Plane::set_crosstrack_start(const Location &new_start_location)
@@ -959,8 +961,7 @@ bool Plane::set_crosstrack_start(const Location &new_start_location)
     auto_state.crosstrack = true;
     return true;
 }
-
-#endif // AP_SCRIPTING_ENABLED
+#endif
 
 // returns true if vehicle is landing.
 bool Plane::is_landing() const
@@ -1031,33 +1032,41 @@ void Plane::precland_update(void)
 }
 #endif
 
+#if !AC_PRECLAND_ENABLED
+sdfhs
+#endif
+
 #if AC_PRECLAND_ENABLED && HAL_QUADPLANE_ENABLED
 void Plane::quadplane_precland(void)
 {
     if (!g2.precland.enabled())
         return;
-    Location next_WP = plane.get_target_location();
-    if (!next_WP)
+    Location next_WP;
+    if (!plane.get_target_location(next_WP))
         return;
     if (!(quadplane.in_vtol_land_descent() || plane.get_mode() == Mode::QLAND))
         return;
     if (!g2.precland.healthy())
         return;
-    if (!g2.precland.target_acquired())
+
+    Location loc;
+    if (!g2.precland.get_target_location(loc))
         return;
 
-    Location loc = g2.precland.get_target_location();
     Location targ = next_WP;
     targ.lat = loc.lat;
     targ.lng = loc.lng;
 
-    Location me = plane.ahrs.get_location();
+    Location me;
+    if (!plane.ahrs.get_location(me))
+        return;
+
     ftype dist = me.get_distance(targ);
     ftype stop_dist = g2.precland.get_max_xy_error_to_stop();
-    if (dist > stop_dist && stop_dist != 0)
+    if (dist > stop_dist && stop_dist > 0)
         return;
     ftype descent_dist = g2.precland.get_max_xy_error_before_descending_cm();
-    if (dist * 100.0f > descent_dist && descent_dist != 0)
+    if (dist * 100.0f > descent_dist && descent_dist > 0)
         plane.set_land_descent_rate(0);
 
     plane.update_target_location(next_WP, targ);

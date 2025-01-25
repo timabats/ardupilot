@@ -160,6 +160,13 @@ public:
     // Method to control vehicle position for use by external control
     virtual bool set_target_location(const Location& target_loc) { return false; }
 #endif // AP_EXTERNAL_CONTROL_ENABLED
+    // Get target location for use by external control
+    virtual bool get_target_location(Location& target_loc) { return false; }
+
+    virtual bool update_target_location(const Location& old_loc, const Location& new_loc) { return false; }
+
+    // allow for landing descent rate to be overridden by a script, may be -ve to climb
+    virtual bool set_land_descent_rate(float descent_rate) { return false; }
 #if AP_SCRIPTING_ENABLED
     /*
       methods to control vehicle for use by scripting
@@ -177,10 +184,6 @@ public:
     virtual void set_target_throttle_rate_rpy(float throttle_pct, float roll_rate_dps, float pitch_rate_dps, float yaw_rate_dps) {}
     virtual void set_rudder_offset(float rudder_pct, bool run_yaw_rate_controller) {}
     virtual bool nav_scripting_enable(uint8_t mode) {return false;}
-
-    // get target location (for use by scripting)
-    virtual bool get_target_location(Location& target_loc) { return false; }
-    virtual bool update_target_location(const Location &old_loc, const Location &new_loc) { return false; }
 
     // circle mode controls (only used by scripting with Copter)
     virtual bool get_circle_radius(float &radius_m) { return false; }
@@ -206,9 +209,10 @@ public:
     // returns true if the EKF failsafe has triggered
     virtual bool has_ekf_failsafed() const { return false; }
 
-    // allow for landing descent rate to be overridden by a script, may be -ve to climb
-    virtual bool set_land_descent_rate(float descent_rate) { return false; }
-    
+    // Allow for scripting to have control over the crosstracking when exiting and resuming missions or guided flight
+    // It's up to the Lua script to ensure the provided location makes sense
+    virtual bool set_crosstrack_start(const Location &new_start_location) { return false; }
+
     // control outputs enumeration
     enum class ControlOutput {
         Roll = 1,
